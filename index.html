@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Thiệp mời AR - GIF</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: black;
+    }
+
+    #videoBg {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 0;
+    }
+
+    #inviteVideo {
+      position: absolute;
+      width: 280px;
+      transform: translate(-50%, -50%);
+      border-radius: 12px;
+      z-index: 10;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <video id="videoBg" autoplay playsinline muted></video>
+  <img id="inviteVideo" src="invite.gif" />
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script>
+    const videoElement = document.getElementById('videoBg');
+    const inviteVideo = document.getElementById('inviteVideo');
+
+    const pose = new Pose({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+    });
+
+    pose.setOptions({
+      modelComplexity: 1,
+      smoothLandmarks: true,
+      enableSegmentation: false,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+
+    pose.onResults((results) => {
+      if (!results.poseLandmarks) {
+        inviteVideo.style.display = "none";
+        return;
+      }
+
+      const left = results.poseLandmarks[11];
+      const right = results.poseLandmarks[12];
+      const chestX = (left.x + right.x) / 2 * window.innerWidth;
+      const chestY = (left.y + right.y) / 2 * window.innerHeight;
+
+      inviteVideo.style.left = `${chestX}px`;
+      inviteVideo.style.top = `${chestY}px`;
+      inviteVideo.style.display = "block";
+    });
+
+    const camera = new Camera(videoElement, {
+      onFrame: async () => {
+        await pose.send({ image: videoElement });
+      },
+      width: 640,
+      height: 480,
+      facingMode: "user"
+    });
+
+    camera.start();
+  </script>
+</body>
+</html>
